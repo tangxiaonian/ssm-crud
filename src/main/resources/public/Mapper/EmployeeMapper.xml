@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tang.dao.EmployeeMapper">
+
+    <resultMap id="employeeResultMap" type="Employee">
+        <id property="empId" column="emp_id"/>
+        <result property="empName" column="emp_name"></result>
+        <result property="gender" column="gender"></result>
+        <result property="email" column="email"></result>
+        <result property="dId" column="d_id"></result>
+        <association property="department" javaType="Department">
+            <id property="deptId" column="dept_id"/>
+            <result property="deptName" column="dept_name"></result>
+        </association>
+    </resultMap>
+
+    <select id="pageSelectAll" resultMap="employeeResultMap" parameterType="PageEmployee">
+        select * from tbl_emp te LEFT JOIN tbl_dept td ON te.d_id = td.dept_id limit #{position},#{pageSize}
+    </select>
+
+    <insert id="addEmployee" parameterType="Employee" useGeneratedKeys="true" keyProperty="empId">
+        insert into tbl_emp values
+        <trim prefix="(null," suffix=")" suffixOverrides=",">
+
+            <if test="empName != null">
+              #{empName},
+            </if>
+
+            <if test="gender != null">
+                #{gender},
+            </if>
+
+            <if test="email != null">
+                #{email},
+            </if>
+
+            <if test="dId != null">
+                #{dId},
+            </if>
+
+        </trim>
+
+    </insert>
+
+    <select id="employeeCount" resultType="Long">
+        select count(*) from tbl_emp
+    </select>
+
+    <select id="findById" parameterType="Integer" resultType="Employee">
+        select * from tbl_emp
+        <where>
+            emp_id = #{id}
+        </where>
+    </select>
+
+    <delete id="deleteById" parameterType="Integer">
+        delete from tbl_emp where emp_id = #{id}
+    </delete>
+
+</mapper>

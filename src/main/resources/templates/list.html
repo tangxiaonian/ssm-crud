@@ -1,0 +1,292 @@
+<!Doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>list</title>
+    <meta charset="UTF-8"/>
+    <script th:src="@{/js/jquery-1.12.4.min.js}"></script>
+    <link rel="stylesheet" th:href="@{/bootstrap-3.3.7-dist/css/bootstrap.css}"/>
+    <script th:src="@{/bootstrap-3.3.7-dist/js/bootstrap.min.js}"></script>
+</head>
+<body>
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="page-header">
+                <h1>SSM-CRUD</h1>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <a id="delEmployee" class="btn btn-default pull-right" href="#" role="button">删除</a>
+            <a data-toggle="modal" id="add_getDept" data-target="#empAddModal" class="btn btn-default pull-right" href="#" role="button">新增</a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <table class="table table-hover">
+                <tr>
+                    <th>#</th>
+                    <th>empName</th>
+                    <th>gender</th>
+                    <th>email</th>
+                    <th>deptName</th>
+                    <th>操作</th>
+                </tr>
+                <tbody id="tbody">
+                    <tr th:each="emp,iterStat : ${pageEmployee.list}">
+                        <td>
+                            <input type="checkbox" name="delId" th:value="${emp.empId}">
+                        </td>
+                        <td>[[${emp.empName}]]</td>
+                        <td>[[${emp.gender == "0" ? "男" : "女"}]]</td>
+                        <td>[[${emp.email}]]</td>
+                        <td>[[${emp.department.deptName}]]</td>
+                        <td class="text-center">
+                            <button
+                                    th:data-Id="${emp.empId}"
+                                    data-toggle="modal"
+                                    data-target="#empUpdateModal"
+                                    class="editBtn btn btn-primary btn-sm">
+                                <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
+                                编辑
+                            </button>
+                            <button th:data-Id="${emp.empId}" class="btn btn-danger btn-sm">
+                                <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>
+                                删除
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 显示分页信息 -->
+    <div class="row">
+        <!-- 分页条信息 -->
+        <div class="col-md-6">当前[[${pageEmployee.currentPage}]]页,
+            总[[${pageEmployee.countPage}]]
+            页,总[[${pageEmployee.count}]]条记录
+        </div>
+        <div class="col-md-6">
+            <nav aria-label="Page navigation">
+                <ul class="pagination">
+                    <li>
+                        <a id="Previous" href="#" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    <li th:each="pageNo : ${#numbers.sequence(1,pageEmployee.countPage)}">
+                        <a href="#">[[${pageNo}]]</a>
+                    </li>
+                    <!--<li><a href="#">2</a></li>-->
+                    <!--<li><a href="#">3</a></li>-->
+                    <!--<li><a href="#">4</a></li>-->
+                    <!--<li><a href="#">5</a></li>-->
+                    <li>
+                        <a href="#" id="Next" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <!--页面隐藏域-->
+    <form action="/emps" hidden="hidden" id="pageForm">
+        <input type="text" name="currentPage" th:value="${pageEmployee == null ? 0 : pageEmployee.currentPage}"/>
+        <input type="text" name="pageSize" th:value="${pageEmployee == null ? 5 : pageEmployee.pageSize}"/>
+    </form>
+
+    <!--修改模态框-->
+    <div th:replace="~{addModel :: model}"></div>
+    <!--添加模态框-->
+    <div th:replace="~{editModal :: model}"></div>
+
+    <script>
+
+        window.onload = function () {
+
+            // pageEmp(1,5);
+            delEmployee.onclick = function(){
+
+                let checks = document.querySelectorAll("tbody td input[type=checkbox]");
+                let delA = [];
+
+                checks.forEach((item)=>{
+                    if(item.checked)
+                        delA.push(item.value);
+                });
+
+                let formData = new FormData();
+                formData.append("delA",delA);
+
+                let response = fetch("/delEmps",{
+                    method:"delete",
+                    body: formData
+                }).then((response)=>{
+                    return response.json();
+                });
+
+                response.then((res)=>{
+                   console.log(res);
+                });
+            }
+            //del员工
+
+            //add员工信息
+            emp_save_btn.onclick = function(){
+
+                $.ajax({
+                    type:"put",
+                    url:"/emp",
+                    data: $("#addform").serialize(),
+                    success(res){
+
+                        if (res){
+                            window.alert(`${res.msg}`);
+                        }
+                        //表单清空
+                        addform.reset();
+                        $('#empAddModal').modal('hide');
+                        page();
+                    //    页面刷新
+                    }
+                });
+            };
+
+            //分页查询
+            function page(){
+                pageForm.submit();
+            }
+            Previous.onclick = previous;
+            Next.onclick = next;
+            //前一页
+            function previous(){
+
+                let currentPage = pageForm["currentPage"].value - 0 - 1;
+                let pageSize = pageForm["pageSize"].value;
+
+                if (currentPage <= 0)
+                    currentPage = 1;
+
+                pageForm["currentPage"].value = currentPage;
+                page();
+                // pageEmp(currentPage,pageSize);
+            }
+
+            //后一页
+            function next(){
+                let currentPage = pageForm["currentPage"].value - 0 + 1;
+                let pageSize = pageForm["pageSize"].value;
+
+                pageForm["currentPage"].value = currentPage;
+                page();
+                // pageEmp(currentPage,pageSize);
+            }
+            //获取分页数据  并加载数据
+            // function pageEmp(currentPage,pageSize) {
+                // $.ajax({
+                //     type:"get",
+                //     url:"/emps",
+                //     data:{currentPage,pageSize},
+                //     success(res){
+                //         tbody.innerHTML = "";
+                //         console.log(res);
+                //         // res.forEach((emp)=>{
+                //         // let template = `<tr>
+                //         //                     <td>
+                //         //                         <input type="checkbox" name="delId" th:value="${emp.empId}">
+                //         //                         </td>
+                //         //                         <td>${emp.empName}</td>
+                //         //                         <td>${emp.gender == "0" ? "男" : "女"}]]</td>
+                //         //                         <td>${emp.email}</td>
+                //         //                         <td>${emp.department.deptName}</td>
+                //         //                         <td class="text-center">
+                //         //                         <button data-Id="${emp.empId}" data-toggle="modal" data-target="#empUpdateModal"
+                //         //                             class="editBtn btn btn-primary btn-sm">
+                //         //                             <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>
+                //         //                             编辑
+                //         //                         </button>
+                //         //                         <button class="btn btn-danger btn-sm">
+                //         //                             <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>
+                //         //                             删除
+                //         //                         </button>
+                //         //                     </td>
+                //         //                 </tr>`;
+                //         // });
+                //     }
+                // });
+            // }
+
+
+            //获取部门信息
+            add_getDept.onclick = function () {
+
+                getDept(selectAddDepts,1);
+
+            };
+            //编辑员工信息的回显按钮
+            let btns = document.querySelectorAll("tr td button.editBtn");
+
+            btns.forEach((item)=>{
+                item.onclick = displayEmployee;
+            });
+
+            function displayEmployee() {
+                //用户id
+                let id = this.dataset.id;
+
+                getEmployee(id).then((emp)=>{
+
+                    if (emp){
+
+                        empName_update_static.innerHTML = emp.empName;
+                        email_update_input.value = emp.email;
+
+                        emp.gender === "1" ? gender1_update_input.setAttribute("checked","checked")
+                            : gender2_update_input.setAttribute("checked","checked");
+
+                        getDept(selectEditDepts,emp.dId);
+                    }
+                });
+
+            };
+            //获取Employee信息
+            function getEmployee(id) {
+
+                return new Promise((res,rej)=>{
+                    $.ajax({
+                        type:"get",
+                        url:"/emp/"+id,
+                        success: res
+                    });
+                });
+
+            }
+           // 得到部门信息
+           function getDept(element,id) {
+                $.ajax({
+                    type:"get",
+                    url:"/dept",
+                    success(res){
+                        element.innerHTML = "";
+
+                        res.forEach((item)=>{
+
+                            let option = new Option(item.deptName,item.deptId, item.dept_id == id);
+
+                            element.add(option);
+                        });
+                    }
+                });
+            }
+        }
+    </script>
+
+</div>
+</body>
+</html>
